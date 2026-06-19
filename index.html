@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Insurer Service Survey 2026</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #1E3A8A;
+      --blue-light: #3B5FC0;
+      --text: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --bg: #ffffff;
+      --hover: #f3f4f6;
+      --selected-bg: #EFF2FC;
+      --selected-border: #1E3A8A;
+      --radius: 10px;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* ── PROGRESS BAR ── */
+    #progress-bar-wrap {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 4px; background: var(--border);
+    }
+    #progress-bar {
+      height: 100%; background: var(--blue);
+      transition: width .5s ease; width: 0%;
+    }
+
+    /* ── LAYOUT ── */
+    .page {
+      display: none;
+      min-height: 100vh;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 60px 48px 80px;
+      max-width: 720px;
+      margin: 0 auto;
+      animation: fadeUp .3s ease;
+    }
+    .page.active { display: flex; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── LOGO / BRAND ── */
+    .brand-logo {
+      margin-bottom: 36px;
+    }
+    .brand-logo img {
+      height: 36px; width: auto; object-fit: contain;
+    }
+    .brand-logo .brand-text {
+      font-size: 1.1rem; font-weight: 700; color: var(--blue);
+      letter-spacing: -0.3px;
+    }
+
+    /* ── QUESTION NUMBER ── */
+    .q-ref {
+      display: inline-flex; align-items: center; gap: 10px;
+      margin-bottom: 20px;
+    }
+    .q-num-badge {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: var(--blue); color: white;
+      font-size: 0.78rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .q-ref-label {
+      font-size: 1rem; font-weight: 500; color: var(--text);
+    }
+
+    /* ── QUESTION TEXT ── */
+    h1.question {
+      font-size: clamp(1.4rem, 3.5vw, 2rem);
+      font-weight: 600; line-height: 1.3;
+      margin-bottom: 8px; color: var(--text);
+    }
+    .q-hint {
+      color: var(--muted); font-size: 0.9rem; margin-bottom: 36px; font-style: italic;
+    }
+
+    /* ── INPUTS ── */
+    .field { margin-bottom: 20px; width: 100%; max-width: 480px; }
+    .field label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
+    .field input {
+      width: 100%; border: none; border-bottom: 2px solid var(--border);
+      padding: 10px 0; font-size: 1.1rem; color: var(--text);
+      background: transparent; outline: none; transition: border-color .2s;
+      font-family: inherit;
+    }
+    .field input::placeholder { color: #c0c4ce; }
+    .field input:focus { border-bottom-color: var(--blue); }
+
+    /* ── OPTIONS ── */
+    .options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 560px; }
+
+    .opt-btn {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--bg); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 13px 16px;
+      cursor: pointer; text-align: left; transition: all .15s;
+      font-family: inherit; font-size: 0.95rem; color: var(--text);
+      width: 100%;
+    }
+    .opt-btn:hover { border-color: var(--blue-light); background: var(--hover); }
+    .opt-btn.selected {
+      border-color: var(--selected-border);
+      background: var(--selected-bg);
+    }
+    .opt-letter {
+      width: 24px; height: 24px; border-radius: 4px; flex-shrink: 0;
+      border: 1.5px solid var(--border); display: flex; align-items: center;
+      justify-content: center; font-size: 0.72rem; font-weight: 600;
+      color: var(--blue); background: white; transition: all .15s;
+    }
+    .opt-btn.selected .opt-letter {
+      background: var(--blue); border-color: var(--blue); color: white;
+    }
+    .opt-text { font-size: 0.95rem; }
+
+    /* NPS row */
+    .nps-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .nps-btn {
+      width: 52px; height: 52px; border: 1.5px solid var(--border);
+      border-radius: 8px; background: var(--bg); cursor: pointer;
+      font-size: 1rem; font-weight: 600; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s; font-family: inherit;
+    }
+    .nps-btn:hover { border-color: var(--blue-light); color: var(--text); }
+    .nps-btn.selected { border-color: var(--blue); background: var(--selected-bg); color: var(--blue); }
+    .nps-labels { display: flex; justify-content: space-between; max-width: 580px; }
+    .nps-labels span { font-size: 0.75rem; color: var(--muted); }
+
+    /* Comments */
+    .comments-wrap textarea {
+      width: 100%; max-width: 560px; border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+      font-size: 0.95rem; font-family: inherit; color: var(--text);
+      background: var(--bg); resize: vertical; min-height: 100px;
+      outline: none; transition: border-color .2s;
+    }
+    .comments-wrap textarea:focus { border-color: var(--blue); }
+    .comments-wrap textarea::placeholder { color: #c0c4ce; }
+
+    /* ── INSURER INTRO ── */
+    .insurer-intro-logo {
+      margin-bottom: 40px;
+    }
+    .insurer-intro-logo img {
+      max-height: 80px; max-width: 260px; object-fit: contain;
+    }
+
+    /* Insurer select grid */
+    .insurer-grid {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 36px; max-width: 640px;
+    }
+    .ins-chip {
+      display: flex; align-items: center; gap: 10px;
+      border: 1.5px solid var(--border); border-radius: 999px;
+      padding: 8px 16px 8px 10px; cursor: pointer;
+      transition: all .15s; background: var(--bg);
+      font-size: 0.9rem; color: var(--text); font-family: inherit;
+    }
+    .ins-chip:hover { border-color: var(--blue-light); background: var(--hover); }
+    .ins-chip.selected { border-color: var(--blue); background: var(--selected-bg); }
+    .ins-chip img {
+      height: 24px; width: 36px; object-fit: contain;
+      border-radius: 3px; background: white;
+    }
+    .ins-chip .chip-check {
+      width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: white; background: white; transition: all .15s;
+      margin-left: 4px; flex-shrink: 0;
+    }
+    .ins-chip.selected .chip-check { background: var(--blue); border-color: var(--blue); }
+    .ins-chip.selected .chip-check::after { content: '✓'; }
+
+    /* ── BUTTONS ── */
+    .btn-primary {
+      background: var(--blue); color: white; border: none;
+      padding: 14px 28px; border-radius: 8px; font-size: 0.95rem;
+      font-weight: 600; cursor: pointer; transition: background .15s;
+      font-family: inherit; margin-top: 32px;
+    }
+    .btn-primary:hover { background: var(--blue-light); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-back {
+      background: none; border: none; color: var(--muted);
+      font-size: 0.85rem; cursor: pointer; margin-top: 16px;
+      font-family: inherit; display: flex; align-items: center; gap: 4px;
+      padding: 0;
+    }
+    .btn-back:hover { color: var(--text); }
+
+    /* ── ADMIN ── */
+    #admin-trigger {
+      position: fixed; top: 16px; right: 20px; z-index: 200;
+      background: none; border: 1px solid var(--border);
+      color: var(--muted); font-size: 0.78rem; padding: 5px 12px;
+      border-radius: 6px; cursor: pointer; font-family: inherit;
+      transition: all .15s;
+    }
+    #admin-trigger:hover { border-color: var(--blue); color: var(--blue); }
+
+    #admin-modal {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.4); align-items: flex-start;
+      justify-content: center; padding: 40px 20px; overflow-y: auto;
+    }
+    #admin-modal.open { display: flex; }
+    .modal-box {
+      background: white; border-radius: 16px; padding: 32px;
+      width: 100%; max-width: 960px; box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px;
+    }
+    .modal-header h3 { font-size: 1.2rem; font-weight: 700; }
+    .close-btn {
+      background: none; border: none; font-size: 1.3rem; cursor: pointer;
+      color: var(--muted); line-height: 1; padding: 4px 8px;
+    }
+    .close-btn:hover { color: var(--text); }
+
+    #login-wrap { max-width: 340px; }
+    #login-wrap .field input { border-bottom: 2px solid var(--border); }
+    #login-error { color: #dc2626; font-size: 0.82rem; margin-top: 8px; display: none; }
+
+    #admin-content { display: none; }
+    .admin-bar {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .btn-sm {
+      border: 1px solid var(--border); background: white; color: var(--text);
+      padding: 8px 16px; border-radius: 7px; font-size: 0.82rem;
+      cursor: pointer; font-family: inherit; transition: all .15s;
+    }
+    .btn-sm:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-sm.danger:hover { border-color: #dc2626; color: #dc2626; }
+    #resp-count { margin-left: auto; color: var(--muted); font-size: 0.82rem; }
+
+    .table-wrap { overflow-x: auto; max-height: 480px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 700px; }
+    th { background: #f9fafb; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); position: sticky; top: 0; border-bottom: 1px solid var(--border); }
+    td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f9fafb; }
+
+    /* ── THANK YOU ── */
+    .ty-icon {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: #dcfce7; border: 2px solid #16a34a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+<button id="admin-trigger" onclick="openAdmin()">Admin</button>
+
+<!-- ══════════ WELCOME ══════════ -->
+<div class="page active" id="page-welcome">
+  <div class="brand-logo">
+    <span class="brand-text">JMG Group</span>
+  </div>
+  <div class="q-ref">
+    <div class="q-num-badge">1</div>
+    <span class="q-ref-label">Insurer Service Survey</span>
+  </div>
+  <h1 class="question">Please complete one section for each insurer.</h1>
+  <div class="field">
+    <label>First name</label>
+    <input type="text" id="input-fname" placeholder="Jane" />
+  </div>
+  <div class="field">
+    <label>Last name</label>
+    <input type="text" id="input-lname" placeholder="Smith" />
+  </div>
+  <button class="btn-primary" onclick="goToSelect()">Continue</button>
+</div>
+
+<!-- ══════════ SELECT INSURERS ══════════ -->
+<div class="page" id="page-select">
+  <div class="q-ref">
+    <div class="q-num-badge">2</div>
+    <span class="q-ref-label">Which insurers would you like to rate?</span>
+  </div>
+  <h1 class="question">Select all that apply.</h1>
+  <p class="q-hint">You'll only be asked about those you choose.</p>
+  <div class="insurer-grid" id="insurer-grid"></div>
+  <button class="btn-primary" id="btn-continue-select" onclick="startSurvey()" disabled>Continue</button>
+  <button class="btn-back" onclick="show('welcome')">← Back</button>
+</div>
+
+<!-- ══════════ INSURER INTRO ══════════ -->
+<div class="page" id="page-insurer-intro">
+  <div class="q-ref">
+    <div class="q-num-badge" id="intro-badge">3</div>
+    <span class="q-ref-label" id="intro-label">Allianz</span>
+  </div>
+  <h1 class="question" id="intro-title">Allianz</h1>
+  <div class="insurer-intro-logo">
+    <img id="intro-logo" src="" alt="" />
+  </div>
+  <button class="btn-primary" onclick="startInsurerQuestions()">Continue</button>
+  <button class="btn-back" onclick="prevSection()">← Back</button>
+</div>
+
+<!-- ══════════ QUESTION ══════════ -->
+<div class="page" id="page-question">
+  <div class="q-ref">
+    <div class="q-num-badge" id="q-badge">3a</div>
+    <span class="q-ref-label" id="q-insurer-label">Allianz</span>
+  </div>
+  <h1 class="question" id="q-text"></h1>
+  <div id="q-control"></div>
+  <button class="btn-primary" id="btn-next-q" onclick="nextQuestion()">Continue</button>
+  <button class="btn-back" onclick="prevQuestion()">← Back</button>
+</div>
+
+<!-- ══════════ THANK YOU ══════════ -->
+<div class="page" id="page-thankyou">
+  <div class="ty-icon">✓</div>
+  <div class="q-ref">
+    <div class="q-num-badge">✓</div>
+    <span class="q-ref-label">All done</span>
+  </div>
+  <h1 class="question">Thank you for your feedback!</h1>
+  <p class="q-hint">Your responses have been submitted successfully.</p>
+  <button class="btn-primary" onclick="restart()">Submit another response</button>
+</div>
+
+<!-- ══════════ ADMIN MODAL ══════════ -->
+<div id="admin-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Admin — Survey Responses</h3>
+      <button class="close-btn" onclick="closeAdmin()">✕</button>
+    </div>
+
+    <div id="login-wrap">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="admin-user" placeholder="admin" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="admin-pass" placeholder="••••••••"
+               onkeydown="if(event.key==='Enter') doLogin()" />
+      </div>
+      <div id="login-error">Incorrect username or password.</div>
+      <button class="btn-primary" style="margin-top:16px" onclick="doLogin()">Log in</button>
+    </div>
+
+    <div id="admin-content">
+      <div class="admin-bar">
+        <button class="btn-sm" onclick="loadResponses()">↻ Refresh</button>
+        <button class="btn-sm" onclick="exportExcel()">⬇ Download Excel</button>
+        <button class="btn-sm danger" onclick="clearAll()">✕ Clear all</button>
+        <span id="resp-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead id="tbl-head"></thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────
+
+const INSURERS = [
+  { id: 'aviva',     name: 'Aviva',     ext: 'jpeg' },
+  { id: 'axa',       name: 'AXA',       ext: 'png'  },
+  { id: 'allianz',   name: 'Allianz',   ext: 'jpeg' },
+  { id: 'qbe',       name: 'QBE',       ext: 'jpeg' },
+  { id: 'zurich',    name: 'Zurich',    ext: 'png'  },
+  { id: 'travelers', name: 'Travelers', ext: 'png'  },
+  { id: 'arch',      name: 'Arch',      ext: 'png'  },
+  { id: 'hiscox',    name: 'Hiscox',    ext: 'png'  },
+  { id: 'intact',    name: 'Intact',    ext: 'png'  },
+  { id: 'chubb',     name: 'Chubb',     ext: 'png'  },
+  { id: 'pen',       name: 'Pen',       ext: 'png'  },
+];
+
+const LIKERT  = ['Strongly agree', 'Agree', 'No opinion held', 'Disagree', 'Strongly disagree'];
+const COMPARE = ['Significantly improved', 'Improved', 'The same', 'Worse', 'Significantly worse'];
+const LETTERS = ['A','B','C','D','E','F','G','H','I','J','K'];
+
+const QUESTIONS = [
+  { id:'q1', type:'likert',   text:'Are efficient at responding to you' },
+  { id:'q2', type:'likert',   text:'Provide a satisfactory service' },
+  { id:'q3', type:'likert',   text:'Are usually competitive' },
+  { id:'q4', type:'likert',   text:'Make it easy for you to sell their products' },
+  { id:'q5', type:'likert',   text:'You feel supported when working with them' },
+  { id:'q6', type:'likert',   text:'Often show their ability to make commercial decisions' },
+  { id:'q7', type:'nps',      text:'How would you rate them overall?' },
+  { id:'q8', type:'compare',  text:'How do you feel the overall service compares to 12 months ago?' },
+  { id:'q9', type:'comments', text:'Any other comments on service / support' },
+];
+
+// ── STATE ─────────────────────────────────────────────
+
+let selected = [];       // insurer ids chosen
+let responses = {};      // { insurerId: { q1: val, ... } }
+let sectionIdx = 0;      // which selected insurer we're on
+let questionIdx = 0;     // which question within that insurer
+
+// ── NAVIGATION ────────────────────────────────────────
+
+function show(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function setProgress(val) { // 0–100
+  document.getElementById('progress-bar').style.width = val + '%';
+}
+
+// ── WELCOME → SELECT ──────────────────────────────────
+
+function goToSelect() {
+  buildGrid();
+  show('select');
+  setProgress(5);
+}
+
+function buildGrid() {
+  const grid = document.getElementById('insurer-grid');
+  grid.innerHTML = '';
+  INSURERS.forEach(ins => {
+    const chip = document.createElement('button');
+    chip.className = 'ins-chip' + (selected.includes(ins.id) ? ' selected' : '');
+    chip.innerHTML = `
+      <img src="/logos/${ins.id}.${ins.ext}" alt="${ins.name}" />
+      <span>${ins.name}</span>
+      <span class="chip-check"></span>`;
+    chip.onclick = () => toggleIns(ins.id, chip);
+    grid.appendChild(chip);
+  });
+}
+
+function toggleIns(id, chip) {
+  if (selected.includes(id)) {
+    selected = selected.filter(i => i !== id);
+    chip.classList.remove('selected');
+  } else {
+    selected.push(id);
+    chip.classList.add('selected');
+  }
+  document.getElementById('btn-continue-select').disabled = selected.length === 0;
+}
+
+// ── START SURVEY ──────────────────────────────────────
+
+function startSurvey() {
+  sectionIdx = 0;
+  responses = {};
+  showInsurerIntro();
+}
+
+// ── INSURER INTRO SCREEN ──────────────────────────────
+
+function showInsurerIntro() {
+  const ins = INSURERS.find(i => i.id === selected[sectionIdx]);
+  const totalSections = selected.length;
+
+  document.getElementById('intro-badge').textContent = sectionIdx + 3;
+  document.getElementById('intro-label').textContent = ins.name;
+  document.getElementById('intro-title').textContent = ins.name;
+  document.getElementById('intro-logo').src = `/logos/${ins.id}.${ins.ext}`;
+  document.getElementById('intro-logo').alt = ins.name;
+
+  const pct = Math.round(((sectionIdx * (QUESTIONS.length + 1)) / (totalSections * (QUESTIONS.length + 1))) * 90);
+  setProgress(pct + 5);
+
+  show('insurer-intro');
+}
+
+function startInsurerQuestions() {
+  questionIdx = 0;
+  showQuestion();
+}
+
+// ── QUESTION ──────────────────────────────────────────
+
+function showQuestion() {
+  const ins = INSURERS.find(i => i.id === selected[sectionIdx]);
+  const q = QUESTIONS[questionIdx];
+  const totalSections = selected.length;
+
+  // badge like "3a", "3b" etc.
+  const sectionNum = sectionIdx + 3;
+  const badge = sectionNum + LETTERS[questionIdx].toLowerCase();
+  document.getElementById('q-badge').textContent = badge;
+  document.getElementById('q-insurer-label').textContent = ins.name;
+  document.getElementById('q-text').textContent = q.text;
+
+  const pct = Math.round(
+    ((sectionIdx * (QUESTIONS.length + 1) + questionIdx + 1) /
+     (totalSections * (QUESTIONS.length + 1))) * 90
+  );
+  setProgress(pct + 5);
+
+  // Restore saved value
+  const saved = responses[ins.id]?.[q.id];
+
+  const ctrl = document.getElementById('q-control');
+  ctrl.innerHTML = '';
+
+  if (q.type === 'likert') {
+    ctrl.innerHTML = `<div class="options">${LIKERT.map((opt, i) => `
+      <button class="opt-btn${saved === opt ? ' selected' : ''}"
+              onclick="pick(this,'${ins.id}','${q.id}','${opt}')">
+        <span class="opt-letter">${LETTERS[i]}</span>
+        <span class="opt-text">${opt}</span>
+      </button>`).join('')}</div>`;
+
+  } else if (q.type === 'compare') {
+    ctrl.innerHTML = `<div class="options">${COMPARE.map((opt, i) => `
+      <button class="opt-btn${saved === opt ? ' selected' : ''}"
+              onclick="pick(this,'${ins.id}','${q.id}','${opt}')">
+        <span class="opt-letter">${LETTERS[i]}</span>
+        <span class="opt-text">${opt}</span>
+      </button>`).join('')}</div>`;
+
+  } else if (q.type === 'nps') {
+    ctrl.innerHTML = `
+      <div class="nps-row">${[...Array(11).keys()].map(n => `
+        <button class="nps-btn${saved == n ? ' selected' : ''}"
+                onclick="pickNps(this,'${ins.id}','${q.id}',${n})">${n}</button>`).join('')}
+      </div>
+      <div class="nps-labels"><span>0 — Not likely</span><span>10 — Extremely likely</span></div>`;
+
+  } else if (q.type === 'comments') {
+    ctrl.innerHTML = `<div class="comments-wrap">
+      <textarea id="comments-ta" placeholder="Type your answer here…"
+                oninput="save('${ins.id}','${q.id}',this.value)">${saved || ''}</textarea>
+    </div>`;
+  }
+
+  show('question');
+}
+
+function pick(btn, insId, qId, val) {
+  btn.closest('.options').querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  save(insId, qId, val);
+}
+
+function pickNps(btn, insId, qId, val) {
+  btn.closest('.nps-row').querySelectorAll('.nps-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  save(insId, qId, val);
+}
+
+function save(insId, qId, val) {
+  if (!responses[insId]) responses[insId] = {};
+  responses[insId][qId] = val;
+}
+
+// ── FORWARD / BACK ────────────────────────────────────
+
+function nextQuestion() {
+  // Capture comment textarea on navigate
+  const ta = document.getElementById('comments-ta');
+  if (ta) {
+    const ins = INSURERS.find(i => i.id === selected[sectionIdx]);
+    save(ins.id, 'q9', ta.value);
+  }
+
+  if (questionIdx < QUESTIONS.length - 1) {
+    questionIdx++;
+    showQuestion();
+  } else if (sectionIdx < selected.length - 1) {
+    sectionIdx++;
+    showInsurerIntro();
+  } else {
+    submitSurvey();
+  }
+}
+
+function prevQuestion() {
+  if (questionIdx > 0) {
+    questionIdx--;
+    showQuestion();
+  } else {
+    showInsurerIntro();
+  }
+}
+
+function prevSection() {
+  if (sectionIdx > 0) {
+    sectionIdx--;
+    questionIdx = QUESTIONS.length - 1;
+    showQuestion();
+  } else {
+    show('select');
+  }
+}
+
+// ── SUBMIT ────────────────────────────────────────────
+
+async function submitSurvey() {
+  setProgress(100);
+
+  const payload = {
+    respondentName: (document.getElementById('input-fname').value.trim() + ' ' +
+                     document.getElementById('input-lname').value.trim()).trim(),
+    responses,
+  };
+
+  try {
+    await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch(e) {
+    console.warn('Submit error (may be running locally):', e);
+  }
+
+  show('thankyou');
+}
+
+function restart() {
+  selected = [];
+  responses = {};
+  document.getElementById('input-fname').value = '';
+  document.getElementById('input-lname').value = '';
+  setProgress(0);
+  show('welcome');
+}
+
+// ── ADMIN ─────────────────────────────────────────────
+
+const ADMIN_USER = 'admin', ADMIN_PASS = 'fayisthebest';
+let adminData = [];
+
+function openAdmin()  { document.getElementById('admin-modal').classList.add('open'); }
+function closeAdmin() { document.getElementById('admin-modal').classList.remove('open'); }
+
+document.getElementById('admin-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('admin-modal')) closeAdmin();
+});
+
+function doLogin() {
+  const u = document.getElementById('admin-user').value.trim();
+  const p = document.getElementById('admin-pass').value;
+  const err = document.getElementById('login-error');
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    err.style.display = 'none';
+    document.getElementById('login-wrap').style.display = 'none';
+    document.getElementById('admin-content').style.display = 'block';
+    loadResponses();
+  } else {
+    err.style.display = 'block';
+  }
+}
+
+async function loadResponses() {
+  try {
+    const res = await fetch(`/api/responses?password=${ADMIN_PASS}`);
+    if (!res.ok) throw new Error();
+    adminData = await res.json();
+    renderTable(adminData);
+    document.getElementById('resp-count').textContent =
+      `${adminData.length} response${adminData.length !== 1 ? 's' : ''}`;
+  } catch {
+    alert('Could not load responses. Make sure you have deployed to Vercel with Upstash connected.');
+  }
+}
+
+function renderTable(data) {
+  const thead = document.getElementById('tbl-head');
+  const tbody = document.getElementById('tbl-body');
+
+  if (!data.length) {
+    thead.innerHTML = ''; tbody.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;padding:20px">No responses yet.</td></tr>';
+    return;
+  }
+
+  const insurerCols = [];
+  INSURERS.forEach(ins => QUESTIONS.forEach(q => {
+    insurerCols.push({ insId: ins.id, insName: ins.name, qId: q.id, label: `${ins.name} Q${QUESTIONS.indexOf(q)+1}` });
+  }));
+
+  thead.innerHTML = `<tr>
+    <th>Date</th><th>Name</th><th>Company</th>
+    ${insurerCols.map(c => `<th>${c.label}</th>`).join('')}
+  </tr>`;
+
+  tbody.innerHTML = data.map(row => `<tr>
+    <td>${new Date(row.timestamp).toLocaleDateString('en-GB')}</td>
+    <td>${row.respondentName || '—'}</td>
+    <td>${row.respondentCompany || '—'}</td>
+    ${insurerCols.map(c => {
+      const val = row.responses?.[c.insId]?.[c.qId];
+      return `<td>${val !== undefined && val !== '' ? val : '<span style="color:#d1d5db">—</span>'}</td>`;
+    }).join('')}
+  </tr>`).join('');
+}
+
+function exportExcel() {
+  if (!adminData.length) { alert('No responses to export.'); return; }
+
+  const qLabels = ['Efficient responding','Satisfactory service','Usually competitive',
+    'Easy to sell products','Feel supported','Commercial decisions',
+    'Overall rating (0–10)','vs. 12 months ago','Comments'];
+  const headers = ['Date','Name','Company'];
+  INSURERS.forEach(ins => qLabels.forEach(ql => headers.push(`${ins.name} — ${ql}`)));
+
+  const rows = adminData.map(row => {
+    const r = [new Date(row.timestamp).toLocaleString('en-GB'), row.respondentName||'', row.respondentCompany||''];
+    INSURERS.forEach(ins => QUESTIONS.forEach(q => r.push(row.responses?.[ins.id]?.[q.id] ?? '')));
+    return r;
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = headers.map((_, i) => ({ wch: i < 3 ? 16 : 22 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Responses');
+  XLSX.writeFile(wb, `Insurer_Survey_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+async function clearAll() {
+  if (!confirm('Delete ALL responses? This cannot be undone.')) return;
+  try {
+    await fetch(`/api/responses?password=${ADMIN_PASS}`, { method: 'DELETE' });
+    adminData = [];
+    renderTable([]);
+    document.getElementById('resp-count').textContent = '0 responses';
+  } catch { alert('Failed to clear responses.'); }
+}
+</script>
+</body>
+</html>
