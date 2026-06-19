@@ -760,22 +760,84 @@ function renderTable(data) {
 function exportExcel() {
   if (!adminData.length) { alert('No responses to export.'); return; }
 
-  const qLabels = ['Efficient responding','Satisfactory service','Usually competitive',
-    'Easy to sell products','Feel supported','Commercial decisions',
-    'Overall rating (0–10)','vs. 12 months ago','Comments'];
-  const headers = ['Date','Name','Company'];
-  INSURERS.forEach(ins => qLabels.forEach(ql => headers.push(`${ins.name} — ${ql}`)));
+  const qLabels = [
+    'Efficient at responding',
+    'Satisfactory service',
+    'Usually competitive',
+    'Easy to sell products',
+    'Feel supported',
+    'Commercial decisions',
+    'Overall rating (0–10)',
+    'Service vs. 12 months ago',
+    'Comments',
+  ];
+  const nQ = qLabels.length;
+  const nMeta = 2; // Date, Name
 
-  const rows = adminData.map(row => {
-    const r = [new Date(row.timestamp).toLocaleString('en-GB'), row.respondentName||'', row.respondentCompany||''];
+  // Row 1: insurer group headers (merged across their questions)
+  const row1 = ['Date', 'Name', ...Array(nMeta - 2).fill('')];
+  INSURERS.forEach(ins => { row1.push(ins.name); for (let i=1;i<nQ;i++) row1.push(''); });
+
+  // Row 2: question sub-headers
+  const row2 = ['', ''];
+  INSURERS.forEach(() => qLabels.forEach(ql => row2.push(ql)));
+
+  // Data rows
+  const dataRows = adminData.map(row => {
+    const r = [
+      new Date(row.timestamp).toLocaleString('en-GB'),
+      row.respondentName || '',
+    ];
     INSURERS.forEach(ins => QUESTIONS.forEach(q => r.push(row.responses?.[ins.id]?.[q.id] ?? '')));
     return r;
   });
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  ws['!cols'] = headers.map((_, i) => ({ wch: i < 3 ? 16 : 22 }));
+  const ws = XLSX.utils.aoa_to_sheet([row1, row2, ...dataRows]);
+
+  // Merge insurer name cells across their question columns
+  ws['!merges'] = [];
+  INSURERS.forEach((_, i) => {
+    const start = nMeta + i * nQ;
+    const end   = start + nQ - 1;
+    ws['!merges'].push({ s: { r: 0, c: start }, e: { r: 0, c: end } });
+  });
+
+  // Column widths
+  const totalCols = nMeta + INSURERS.length * nQ;
+  ws['!cols'] = Array.from({ length: totalCols }, (_, i) =>
+    ({ wch: i < nMeta ? 18 : 24 })
+  );
+
+  // Style row 1 (insurer headers) — bold + background via cell styles
+  INSURERS.forEach((ins, i) => {
+    const col = nMeta + i * nQ;
+    const cellRef = XLSX.utils.encode_cell({ r: 0, c: col });
+    if (ws[cellRef]) {
+      ws[cellRef].s = {
+        font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '1E3A8A' } },
+        alignment: { horizontal: 'center' },
+      };
+    }
+  });
+
+  // Style row 2 (question sub-headers) — bold, light blue bg
+  for (let c = nMeta; c < totalCols; c++) {
+    const cellRef = XLSX.utils.encode_cell({ r: 1, c });
+    if (ws[cellRef]) {
+      ws[cellRef].s = {
+        font: { bold: true, sz: 10 },
+        fill: { fgColor: { rgb: 'DBE4F0' } },
+        alignment: { wrapText: true },
+      };
+    }
+  }
+
+  // Freeze top 2 rows
+  ws['!freeze'] = { xSplit: 0, ySplit: 2 };
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Responses');
+  XLSX.utils.book_append_sheet(wb, ws, 'Survey Responses');
   XLSX.writeFile(wb, `Insurer_Survey_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
