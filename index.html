@@ -169,27 +169,33 @@
 
     /* Insurer select grid */
     .insurer-grid {
-      display: flex; flex-wrap: wrap; gap: 10px;
-      margin-bottom: 36px; max-width: 640px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px; margin-bottom: 36px; max-width: 640px; width: 100%;
     }
     .ins-chip {
-      display: flex; align-items: center; gap: 12px;
-      border: 1.5px solid var(--border); border-radius: 999px;
-      padding: 14px 22px 14px 14px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 12px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 24px 16px; cursor: pointer;
       transition: all .15s; background: var(--bg);
-      font-size: 0.95rem; color: var(--text); font-family: inherit;
+      font-family: inherit; position: relative;
     }
-    .ins-chip:hover { border-color: var(--blue-light); background: var(--hover); }
+    .ins-chip:hover { border-color: var(--blue-light); background: var(--hover); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
     .ins-chip.selected { border-color: var(--blue); background: var(--selected-bg); }
     .ins-chip img {
-      height: 24px; width: 36px; object-fit: contain;
-      border-radius: 3px; background: white;
+      height: 36px; width: 100%; max-width: 110px;
+      object-fit: contain;
+    }
+    .ins-chip .chip-name {
+      font-size: 0.85rem; font-weight: 600; color: var(--text); text-align: center;
     }
     .ins-chip .chip-check {
-      width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border);
+      position: absolute; top: 8px; right: 8px;
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 1.5px solid var(--border);
       display: flex; align-items: center; justify-content: center;
       font-size: 10px; color: white; background: white; transition: all .15s;
-      margin-left: 4px; flex-shrink: 0;
     }
     .ins-chip.selected .chip-check { background: var(--blue); border-color: var(--blue); }
     .ins-chip.selected .chip-check::after { content: '✓'; }
@@ -460,9 +466,9 @@ function buildGrid() {
     const chip = document.createElement('button');
     chip.className = 'ins-chip' + (selected.includes(ins.id) ? ' selected' : '');
     chip.innerHTML = `
+      <span class="chip-check"></span>
       <img src="/logos/${ins.id}.${ins.ext}" alt="${ins.name}" />
-      <span>${ins.name}</span>
-      <span class="chip-check"></span>`;
+      <span class="chip-name">${ins.name}</span>`;
     chip.onclick = () => toggleIns(ins.id, chip);
     grid.appendChild(chip);
   });
