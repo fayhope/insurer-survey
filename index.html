@@ -96,16 +96,17 @@
     }
 
     /* ── INPUTS ── */
-    .field { margin-bottom: 20px; width: 100%; max-width: 480px; }
+    .field { margin-bottom: 20px; width: 100%; max-width: 700px; }
     .field label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
     .field input {
-      width: 100%; border: none; border-bottom: 2px solid var(--border);
-      padding: 10px 0; font-size: 1.1rem; color: var(--text);
-      background: transparent; outline: none; transition: border-color .2s;
+      width: 100%; border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 12px 16px;
+      font-size: 1rem; color: var(--text);
+      background: var(--bg); outline: none; transition: border-color .2s;
       font-family: inherit;
     }
     .field input::placeholder { color: #c0c4ce; }
-    .field input:focus { border-bottom-color: var(--blue); }
+    .field input:focus { border-color: var(--blue); }
 
     /* ── OPTIONS ── */
     .options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 700px; }
@@ -276,10 +277,10 @@
 
     /* ── THANK YOU ── */
     .ty-icon {
-      width: 60px; height: 60px; border-radius: 50%;
+      width: 80px; height: 80px; border-radius: 50%;
       background: #dcfce7; border: 2px solid #16a34a;
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.6rem; margin-bottom: 24px;
+      font-size: 2rem; margin-bottom: 32px;
     }
   </style>
 </head>
@@ -349,15 +350,11 @@
 </div>
 
 <!-- ══════════ THANK YOU ══════════ -->
-<div class="page" id="page-thankyou">
+<div class="page" id="page-thankyou" style="align-items:center;text-align:center;">
   <div class="ty-icon">✓</div>
-  <div class="q-ref">
-    <div class="q-num-badge">✓</div>
-    <span class="q-ref-label">All done</span>
-  </div>
-  <h1 class="question">Thank you for your feedback!</h1>
-  <p class="q-hint">Your responses have been submitted successfully.</p>
-  <button class="btn-primary" onclick="restart()">Submit another response</button>
+  <h1 style="font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;margin-bottom:16px;">Thank you for taking the time to fill out our survey!</h1>
+  <p style="color:var(--muted);font-size:1.05rem;max-width:480px;line-height:1.7;margin-bottom:8px;">Your feedback is really valuable to us and will help shape how we work with our insurer partners in 2026.</p>
+  <button class="btn-primary" onclick="restart()" style="margin-top:36px;">Submit another response</button>
 </div>
 
 <!-- ══════════ ADMIN MODAL ══════════ -->
