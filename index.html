@@ -365,6 +365,7 @@
     <div class="q-num-badge" id="q-badge">3a</div>
     <span class="q-ref-label" id="q-insurer-label">Allianz</span>
   </div>
+  <img id="q-insurer-logo" src="" alt="" style="height:40px;max-width:160px;object-fit:contain;margin-bottom:20px;" />
   <h1 class="question" id="q-text"></h1>
   <div id="q-control"></div>
   <button class="btn-primary" id="btn-next-q" onclick="nextQuestion()">Continue</button>
@@ -547,6 +548,9 @@ function showQuestion() {
   const badge = sectionNum + LETTERS[questionIdx].toLowerCase();
   document.getElementById('q-badge').textContent = badge;
   document.getElementById('q-insurer-label').textContent = ins.name;
+  const logo = document.getElementById('q-insurer-logo');
+  logo.src = `/logos/${ins.id}.${ins.ext}`;
+  logo.alt = ins.name;
   document.getElementById('q-text').textContent = q.text;
 
   const pct = Math.round(
