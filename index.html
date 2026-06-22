@@ -282,6 +282,31 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 2rem; margin-bottom: 32px;
     }
+    /* ── OPTIONAL / REQUIRED TAGS ── */
+    .optional-tag {
+      font-size: 0.72rem; font-weight: 500; color: #9ca3af;
+      background: #f3f4f6; border-radius: 4px; padding: 2px 6px;
+      margin-left: 6px; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .required-tag {
+      font-size: 0.72rem; font-weight: 600; color: #dc2626;
+      background: #fef2f2; border-radius: 4px; padding: 2px 6px;
+      margin-left: 6px; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+
+    /* ── REGION BUTTONS ── */
+    .region-grid {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;
+    }
+    .region-btn {
+      border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 10px 20px; font-size: 0.9rem; font-weight: 500;
+      cursor: pointer; background: var(--bg); color: var(--text);
+      font-family: inherit; transition: all .15s;
+    }
+    .region-btn:hover { border-color: var(--blue-light); background: var(--hover); }
+    .region-btn.selected { border-color: var(--blue); background: var(--selected-bg); color: var(--blue); font-weight: 600; }
+
     /* ── MOBILE ── */
     @media (max-width: 600px) {
       .page { padding: 60px 24px 80px; }
@@ -318,17 +343,33 @@
   </div>
   <div class="q-ref">
     <div class="q-num-badge">1</div>
-    <span class="q-ref-label">Insurer Service Survey</span>
+    <span class="q-ref-label">Insurer Service Survey 2026</span>
   </div>
   <h1 class="question">Please complete one section for each insurer.</h1>
+
   <div class="field">
-    <label>First name</label>
-    <input type="text" id="input-fname" placeholder="Jane" />
+    <label>First name <span class="optional-tag">optional</span></label>
+    <input type="text" id="input-fname" placeholder="Anonymous is fine" />
   </div>
   <div class="field">
-    <label>Last name</label>
-    <input type="text" id="input-lname" placeholder="Smith" />
+    <label>Last name <span class="optional-tag">optional</span></label>
+    <input type="text" id="input-lname" placeholder="Anonymous is fine" />
   </div>
+
+  <div class="field">
+    <label>Region <span class="required-tag">required</span></label>
+    <div class="region-grid" id="region-grid">
+      <button class="region-btn" onclick="selectRegion(this, 'Scotland')">Scotland</button>
+      <button class="region-btn" onclick="selectRegion(this, 'North')">North</button>
+      <button class="region-btn" onclick="selectRegion(this, 'Midlands')">Midlands</button>
+      <button class="region-btn" onclick="selectRegion(this, 'South')">South</button>
+      <button class="region-btn" onclick="selectRegion(this, 'Volume')">Volume</button>
+      <button class="region-btn" onclick="selectRegion(this, 'Specialty/MGA')">Specialty / MGA</button>
+      <button class="region-btn" onclick="selectRegion(this, 'HNW')">HNW</button>
+    </div>
+    <p id="region-error" style="color:#dc2626;font-size:0.82rem;margin-top:8px;display:none">Please select a region to continue.</p>
+  </div>
+
   <button class="btn-primary" onclick="goToSelect()">Continue</button>
 </div>
 
@@ -458,6 +499,14 @@ let selected = [];       // insurer ids chosen
 let responses = {};      // { insurerId: { q1: val, ... } }
 let sectionIdx = 0;      // which selected insurer we're on
 let questionIdx = 0;     // which question within that insurer
+let selectedRegion = ''; // required region field
+
+function selectRegion(btn, value) {
+  document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedRegion = value;
+  document.getElementById('region-error').style.display = 'none';
+}
 
 // ── NAVIGATION ────────────────────────────────────────
 
@@ -474,6 +523,11 @@ function setProgress(val) { // 0–100
 // ── WELCOME → SELECT ──────────────────────────────────
 
 function goToSelect() {
+  if (!selectedRegion) {
+    document.getElementById('region-error').style.display = 'block';
+    document.getElementById('region-grid').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
   buildGrid();
   show('select');
   setProgress(5);
@@ -665,6 +719,7 @@ async function submitSurvey() {
   const payload = {
     respondentName: (document.getElementById('input-fname').value.trim() + ' ' +
                      document.getElementById('input-lname').value.trim()).trim(),
+    region: selectedRegion,
     responses,
   };
 
@@ -684,6 +739,8 @@ function restart() {
   responses = {};
   document.getElementById('input-fname').value = '';
   document.getElementById('input-lname').value = '';
+  selectedRegion = '';
+  document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
   setProgress(0);
   show('welcome');
 }
@@ -742,14 +799,14 @@ function renderTable(data) {
   }));
 
   thead.innerHTML = `<tr>
-    <th>Date</th><th>Name</th><th>Company</th>
+    <th>Date</th><th>Name</th><th>Region</th>
     ${insurerCols.map(c => `<th>${c.label}</th>`).join('')}
   </tr>`;
 
   tbody.innerHTML = data.map(row => `<tr>
     <td>${new Date(row.timestamp).toLocaleDateString('en-GB')}</td>
     <td>${row.respondentName || '—'}</td>
-    <td>${row.respondentCompany || '—'}</td>
+    <td>${row.region || '—'}</td>
     ${insurerCols.map(c => {
       const val = row.responses?.[c.insId]?.[c.qId];
       return `<td>${val !== undefined && val !== '' ? val : '<span style="color:#d1d5db">—</span>'}</td>`;
@@ -772,14 +829,14 @@ function exportExcel() {
     'Comments',
   ];
   const nQ = qLabels.length;
-  const nMeta = 2; // Date, Name
+  const nMeta = 3; // Date, Name, Region
 
   // Row 1: insurer group headers (merged across their questions)
-  const row1 = ['Date', 'Name', ...Array(nMeta - 2).fill('')];
+  const row1 = ['Date', 'Name', 'Region'];
   INSURERS.forEach(ins => { row1.push(ins.name); for (let i=1;i<nQ;i++) row1.push(''); });
 
   // Row 2: question sub-headers
-  const row2 = ['', ''];
+  const row2 = ['', '', ''];
   INSURERS.forEach(() => qLabels.forEach(ql => row2.push(ql)));
 
   // Data rows
@@ -787,6 +844,7 @@ function exportExcel() {
     const r = [
       new Date(row.timestamp).toLocaleString('en-GB'),
       row.respondentName || '',
+      row.region || '',
     ];
     INSURERS.forEach(ins => QUESTIONS.forEach(q => r.push(row.responses?.[ins.id]?.[q.id] ?? '')));
     return r;
