@@ -24,6 +24,7 @@ export default async function handler(req, res) {
       timestamp: new Date().toISOString(),
       respondentName: body.respondentName || '',
       respondentCompany: body.respondentCompany || '',
+      region: body.region || '',
       responses: body.responses || {},
     };
 
